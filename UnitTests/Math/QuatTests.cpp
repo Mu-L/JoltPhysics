@@ -427,20 +427,37 @@ TEST_SUITE("QuatTests")
 		CHECK_APPROX_EQUAL(a, DegreesToRadians(-10.0f), 1.0e-5f);
 	}
 
-	TEST_CASE("TestQuatGetEulerAngles")
+	TEST_CASE("TestQuatEulerAngles")
 	{
-		Vec3 input(DegreesToRadians(-10.0f), DegreesToRadians(20.0f), DegreesToRadians(-95.0f));
+		UnitTestRandom random;
 
-		Quat qx = Quat::sRotation(Vec3::sAxisX(), input.GetX());
-		Quat qy = Quat::sRotation(Vec3::sAxisY(), input.GetY());
-		Quat qz = Quat::sRotation(Vec3::sAxisZ(), input.GetZ());
-		Quat q = qz * qy * qx;
+		// Pitch clamped to +/- 85 degrees to avoid gimbal lock singularity near +/- 90 degrees
+		uniform_real_distribution<float> full_range(DegreesToRadians(-180.0f), DegreesToRadians(180.0f));
+		uniform_real_distribution<float> pitch_range(DegreesToRadians(-85.0f), DegreesToRadians(85.0f));
 
-		Quat q2 = Quat::sEulerAngles(input);
-		CHECK_APPROX_EQUAL(q, q2);
+		// i == -1 runs a fixed regression case before random cases
+		Vec3 fixed_input(DegreesToRadians(-10.0f), DegreesToRadians(20.0f), DegreesToRadians(-95.0f));
+		for (int i = -1; i < 1000; ++i)
+		{
+			Vec3 input = (i == -1)
+				? fixed_input
+				: Vec3(full_range(random), pitch_range(random), full_range(random));
 
-		Vec3 angles = q2.GetEulerAngles();
-		CHECK_APPROX_EQUAL(angles, input);
+			// Create ground truth by multiplying 3 separate axis rotations (ZYX order)
+			Quat qx = Quat::sRotation(Vec3::sAxisX(), input.GetX());
+			Quat qy = Quat::sRotation(Vec3::sAxisY(), input.GetY());
+			Quat qz = Quat::sRotation(Vec3::sAxisZ(), input.GetZ());
+			Quat q_expected = qz * qy * qx;
+
+			// Test sEulerAngles (Euler -> Quat)
+			Quat q_actual = Quat::sEulerAngles(input);
+			CHECK_APPROX_EQUAL(q_expected, q_actual, 1.0e-4f);
+
+			// Test GetEulerAngles (Quat -> Euler), tested against both q_actual and q_expected
+			// to catch cases where sEulerAngles and GetEulerAngles share a bug
+			CHECK_APPROX_EQUAL(q_actual.GetEulerAngles(), input, 1.0e-4f);
+			CHECK_APPROX_EQUAL(q_expected.GetEulerAngles(), input, 1.0e-4f);
+		}
 	}
 
 	TEST_CASE("TestQuatRotationFromTo")
