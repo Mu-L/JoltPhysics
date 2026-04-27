@@ -79,9 +79,9 @@ public:
 	/// @param inDeltaTime Time step
 	/// @param inInvEffectiveMass Inverse effective mass K
 	/// @param inBias Bias term (b) for the constraint impulse: lambda = J v + b
-	///	@param inC Value of the constraint equation (C). Set to zero if you don't want to drive the constraint to zero with a spring.
+	///	@param inC Value of the constraint equation (C).
 	///	@param inFrequency Oscillation frequency (Hz). Set to zero if you don't want to drive the constraint to zero with a spring.
-	///	@param inDamping Damping factor (0 = no damping, 1 = critical damping). Set to zero if you don't want to drive the constraint to zero with a spring.
+	///	@param inDamping Damping factor (0 = no damping, 1 = critical damping).
 	/// @param outEffectiveMass On return, this contains the new effective mass K^-1
 	inline void					CalculateSpringPropertiesWithFrequencyAndDamping(float inDeltaTime, float inInvEffectiveMass, float inBias, float inC, float inFrequency, float inDamping, float &outEffectiveMass)
 	{
@@ -109,9 +109,9 @@ public:
 	/// @param inDeltaTime Time step
 	/// @param inInvEffectiveMass Inverse effective mass K
 	/// @param inBias Bias term (b) for the constraint impulse: lambda = J v + b
-	///	@param inC Value of the constraint equation (C). Set to zero if you don't want to drive the constraint to zero with a spring.
+	///	@param inC Value of the constraint equation (C).
 	///	@param inStiffness Spring stiffness k. Set to zero if you don't want to drive the constraint to zero with a spring.
-	///	@param inDamping Spring damping coefficient c. Set to zero if you don't want to drive the constraint to zero with a spring.
+	///	@param inDamping Spring damping coefficient c.
 	/// @param outEffectiveMass On return, this contains the new effective mass K^-1
 	inline void					CalculateSpringPropertiesWithStiffnessAndDamping(float inDeltaTime, float inInvEffectiveMass, float inBias, float inC, float inStiffness, float inDamping, float &outEffectiveMass)
 	{
