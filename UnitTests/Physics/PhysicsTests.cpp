@@ -2330,7 +2330,7 @@ TEST_SUITE("PhysicsTests")
 	}
 
 	// Tests applying body creation settings after the body has been created
-	TEST_CASE("TestContactsVsSimulationIslands")
+	TEST_CASE("TestApplyBodyCreationSettings")
 	{
 		PhysicsTestContext c;
 
