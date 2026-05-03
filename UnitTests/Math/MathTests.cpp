@@ -4,6 +4,7 @@
 
 #include "UnitTestFramework.h"
 #include <Jolt/Math/Mat44.h>
+#include <Jolt/Math/FindRoot.h>
 
 TEST_SUITE("Mat44Tests")
 {
@@ -80,5 +81,65 @@ TEST_SUITE("Mat44Tests")
 		CHECK(!IsPowerOf2(17));
 		CHECK(!IsPowerOf2(65535));
 		CHECK(!IsPowerOf2(65537));
+	}
+
+	TEST_CASE("TestFindRoot")
+	{
+		{
+			// Quadratic, 2 solutions
+			float x1, x2;
+			CHECK(FindRoot(2.0f, 8.0f, 6.0f, x1, x2) == 2);
+			CHECK(x1 == -3.0f);
+			CHECK(x2 == -1.0f);
+		}
+
+		{
+			// Quadratic without b term, 2 solutions
+			float x1, x2;
+			CHECK(FindRoot(2.0f, 0.0f, -8.0f, x1, x2) == 2);
+			CHECK(x1 == -2.0f);
+			CHECK(x2 == 2.0f);
+		}
+
+		{
+			// Quadratic without solution
+			float x1, x2;
+			CHECK(FindRoot(2.0f, 1.0f, 8.0f, x1, x2) == 0);
+		}
+
+		{
+			// Linear
+			float x1, x2;
+			CHECK(FindRoot(0.0f, 8.0f, 4.0f, x1, x2) == 1);
+			CHECK(x1 == -0.5f);
+			CHECK(x2 == -0.5f);
+		}
+
+		{
+			// Constant
+			float x1, x2;
+			CHECK(FindRoot(0.0f, 0.0f, 0.0f, x1, x2) == 1);
+			CHECK(x1 == 0.0f);
+			CHECK(x2 == 0.0f);
+		}
+
+		{
+			// Constant, no solution
+			float x1, x2;
+			CHECK(FindRoot(0.0f, 0.0f, 1.0f, x1, x2) == 0);
+		}
+	}
+
+	TEST_CASE("TestDifferenceOfProducts")
+	{
+		float a = 33962.035f, b = -30438.8f, c = 41563.4f, d = -24871.969f;
+		float result = DifferenceOfProducts(a, b, c, d);
+		double expected = double(a) * double(b) - double(c) * double(d);
+		CHECK(expected == -75.165603637695312);
+	#ifdef JPH_USE_FMADD
+		CHECK(result == float(expected));
+	#else
+		CHECK(result == -128.0f); // The products are in the order of 10^9, so the subtraction causes a large loss of precision and we get a very different result. This is expected when fused multiply add instructions are not available.
+	#endif
 	}
 }

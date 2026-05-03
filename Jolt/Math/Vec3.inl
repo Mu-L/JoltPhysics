@@ -352,26 +352,24 @@ UVec4 Vec3::sGreaterOrEqual(Vec3Arg inV1, Vec3Arg inV2)
 
 Vec3 Vec3::sFusedMultiplyAdd(Vec3Arg inMul1, Vec3Arg inMul2, Vec3Arg inAdd)
 {
-#if defined(JPH_USE_SSE)
-	#ifdef JPH_USE_FMADD
+#ifdef JPH_USE_FMADD
+	#ifdef JPH_USE_SSE
 		return _mm_fmadd_ps(inMul1.mValue, inMul2.mValue, inAdd.mValue);
+	#elif defined(JPH_USE_NEON)
+		return vmlaq_f32(inAdd.mValue, inMul1.mValue, inMul2.mValue);
+	#elif defined(JPH_USE_RVV)
+		Vec3 res;
+		const vfloat32m1_t v1 = __riscv_vle32_v_f32m1(inMul1.mF32, 3);
+		const vfloat32m1_t v2 = __riscv_vle32_v_f32m1(inMul2.mF32, 3);
+		const vfloat32m1_t rvv_add = __riscv_vle32_v_f32m1(inAdd.mF32, 3);
+		const vfloat32m1_t fmadd = __riscv_vfmacc_vv_f32m1(rvv_add, v1, v2, 3);
+		__riscv_vse32_v_f32m1(res.mF32, fmadd, 3);
+		return res;
 	#else
-		return _mm_add_ps(_mm_mul_ps(inMul1.mValue, inMul2.mValue), inAdd.mValue);
+		return inMul1 * inMul2 + inAdd;
 	#endif
-#elif defined(JPH_USE_NEON)
-	return vmlaq_f32(inAdd.mValue, inMul1.mValue, inMul2.mValue);
-#elif defined(JPH_USE_RVV)
-	Vec3 res;
-	const vfloat32m1_t v1 = __riscv_vle32_v_f32m1(inMul1.mF32, 3);
-	const vfloat32m1_t v2 = __riscv_vle32_v_f32m1(inMul2.mF32, 3);
-	const vfloat32m1_t rvv_add = __riscv_vle32_v_f32m1(inAdd.mF32, 3);
-	const vfloat32m1_t fmadd = __riscv_vfmacc_vv_f32m1(rvv_add, v1, v2, 3);
-	__riscv_vse32_v_f32m1(res.mF32, fmadd, 3);
-	return res;
 #else
-	return Vec3(inMul1.mF32[0] * inMul2.mF32[0] + inAdd.mF32[0],
-				inMul1.mF32[1] * inMul2.mF32[1] + inAdd.mF32[1],
-				inMul1.mF32[2] * inMul2.mF32[2] + inAdd.mF32[2]);
+	return inMul1 * inMul2 + inAdd;
 #endif
 }
 
@@ -838,6 +836,18 @@ Vec3 Vec3::Reciprocal() const
 	return sOne() / mValue;
 }
 
+Vec3 Vec3::sDifferenceOfProducts(Vec3Arg inA, Vec3Arg inB, Vec3Arg inC, Vec3Arg inD)
+{
+#ifdef JPH_USE_FMADD
+	Vec3 cd = inC * inD;
+	Vec3 err = Vec3::sFusedMultiplyAdd(-inC, inD, cd);
+	Vec3 dop = Vec3::sFusedMultiplyAdd(inA, inB, -cd);
+	return dop + err;
+#else
+	return inA * inB - inC * inD;
+#endif
+}
+
 Vec3 Vec3::Cross(Vec3Arg inV2) const
 {
 #if defined(JPH_USE_SSE)
@@ -874,6 +884,11 @@ Vec3 Vec3::Cross(Vec3Arg inV2) const
 				mF32[2] * inV2.mF32[0] - mF32[0] * inV2.mF32[2],
 				mF32[0] * inV2.mF32[1] - mF32[1] * inV2.mF32[0]);
 #endif
+}
+
+Vec3 Vec3::CrossPrecise(Vec3Arg inV2) const
+{
+	return sDifferenceOfProducts(*this, inV2.Swizzle<SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_X>(), Swizzle<SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_X>(), inV2).Swizzle<SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_X>();
 }
 
 Vec3 Vec3::DotV(Vec3Arg inV2) const
